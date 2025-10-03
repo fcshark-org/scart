@@ -1,0 +1,129 @@
+#!/usr/bin/env bash
+# Copyright (C) 2025 Anya Lin
+#
+# Suspicious CA revoke tool (scart)
+# Use to revoke built-in Suspicious CA,
+# avoiding possible MiTM by CN GOV
+#
+# Depends: ca-bundle OR ca-certificates bash jq-full OR jq openssl-util
+
+# Default CA
+CERTSCONF=/etc/ca-certificates.conf
+CERTSDIR=/usr/share/ca-certificates
+LOCALCERTSDIR=/usr/local/share/ca-certificates
+CERTBUNDLE=ca-certificates.crt
+ETCCERTSDIR=/etc/ssl/certs
+HOOKSDIR=/etc/ca-certificates/update.d
+
+# Suspicious CA Org
+REV='(BEIJING CERTIFICATE AUTHORITY'\
+'|China Financial Certification Authority'\
+'|GUANG DONG CERTIFICATE AUTHORITY'\
+'|Certum Certification Authority'\
+'|iTrusChina'\
+'|TrustAsia Technologies'\
+'|UniTrust)'
+
+SUDO=$(command -v sudo)
+
+
+## Sub-func
+# func <objvar> <filters> [args]
+jsonSelect() {
+	local obj="$1" filters="$2"
+	shift 2
+
+	eval "echo \"\$$obj\" | jq -c --args ' ${filters:-.}' \"\$@\" | jq -rc './/\"\"'"
+}
+
+# func <objvar> <filters> [args]
+jsonSet() {
+	local __tmp
+	__tmp="$1=\"\$( echo '${!1}' | jq -c --args ' ${2:-.}' \"\$@\" )\""
+	shift 2
+
+	eval "$__tmp"
+}
+
+# func <objvar> <file>
+cert2json() {
+	local __tmp
+
+	__tmp="$(cat "$2" | tr -d '\r\n' | sed -En 's|-----BEGIN CERTIFICATE-----([a-zA-Z0-9=\+/_-]+)-----END CERTIFICATE-----|,"\1"|gp')"
+	__tmp="$1='[${__tmp: 1}]'"
+	shift 2
+
+	eval "$__tmp"
+}
+
+# func <objvar>
+json2cert() {
+	jsonSelect $1 'map(sub("(?<x>.{64})"; "\(.x)\n"; "g") | "-----BEGIN CERTIFICATE-----\n\(.)\n-----END CERTIFICATE-----" | sub("\n\n"; "\n")) | join("\n")'
+}
+
+# func <objvar>
+dropSuspiciousCA() {
+	jsonSelect $1 'map(select(@base64d | test("'"$REV"'"; "g") | not))'
+}
+
+# func <file>
+getX509HashName() {
+	HASH=$(openssl x509 -hash -noout -in "$1")
+	SUFFIX=0
+
+	echo "$HASH.$SUFFIX"
+}
+
+
+## Main
+if [ -d "$ETCCERTSDIR" ]; then
+	cd "$ETCCERTSDIR"
+	# ca-bundle -->
+	if [ -f "$CERTBUNDLE" ]; then
+		cert2json ca_in "$CERTBUNDLE"
+		count_in=$(jsonSelect ca_in 'length')
+
+		ca_out="$(dropSuspiciousCA ca_in)"
+		count_out=$(jsonSelect ca_out 'length')
+
+		if [ $[ count_in - count_out ] -gt 0 ]; then
+			json2cert ca_out > /tmp/scart-ca_out
+			$SUDO cp -f /tmp/scart-ca_out "$CERTBUNDLE"
+			echo "Removed $[ count_in - count_out ] Suspicious CA in ca-bundle."
+		else
+			echo "Not found Suspicious CA in ca-bundle."
+		fi
+	fi
+	# ca-certificates -->
+	count=0
+	ls *.{pem,crt} | while read -r _cert; do
+		[ "$_cert" = "$CERTBUNDLE" ] && continue
+
+		cert2json ca_in "$_cert"
+		if [ "$(dropSuspiciousCA ca_in)" = "[]" ]; then
+			_hash="$(getX509HashName "$_cert")"
+			$SUDO rm -f "$_cert" "$_hash"
+			echo "$_cert,$_hash has been removed."
+			let count++
+			echo "$count" > /tmp/scart-count
+		fi
+	done
+	echo "Total removed $(cat /tmp/scart-count) Suspicious CA in ca-certificates."
+fi
+
+if [ -f "$CERTSCONF" ]; then
+	cd "$CERTSDIR"
+	count=0
+	find * -name '*.pem' -o -name '*.crt' -print | while read -r _cert; do
+		cert2json ca_in "$_cert"
+		if [ "$(dropSuspiciousCA ca_in)" = "[]" ]; then
+			$SUDO sed -Ei "s|^($_cert)|\!\1|" "$CERTSCONF"
+			echo "$_cert has been revoked."
+			let count++
+			echo "$count" > /tmp/scart-count
+		fi
+	done
+	echo "Total revoke $(cat /tmp/scart-count) Suspicious CA in ca-certificates."
+
+	$SUDO update-ca-certificates
+fi
