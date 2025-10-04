@@ -7,7 +7,8 @@
 #
 # Depends: ca-bundle OR ca-certificates bash jq-full OR jq openssl-util
 
-# Default CA
+# Debian/Ubuntu/Mint
+# OpenWRT
 CERTSCONF=/etc/ca-certificates.conf
 CERTSDIR=/usr/share/ca-certificates
 LOCALCERTSDIR=/usr/local/share/ca-certificates
@@ -76,6 +77,7 @@ getX509HashName() {
 
 
 ## Main
+# OpenWRT -->
 if [ -d "$ETCCERTSDIR" ]; then
 	cd "$ETCCERTSDIR"
 	# ca-bundle -->
@@ -88,7 +90,7 @@ if [ -d "$ETCCERTSDIR" ]; then
 
 		if [ $[ count_in - count_out ] -gt 0 ]; then
 			json2cert ca_out > /tmp/scart-ca_out
-			$SUDO cp -f /tmp/scart-ca_out "$CERTBUNDLE"
+			$SUDO bash -c "cat /tmp/scart-ca_out > '$CERTBUNDLE'"
 			rm -f /tmp/scart-ca_out
 			echo "Removed $[ count_in - count_out ] Suspicious CA in ca-bundle."
 		else
@@ -115,7 +117,7 @@ if [ -d "$ETCCERTSDIR" ]; then
 	echo "Total removed ${count:-0} Suspicious CA in ca-certificates."
 	echo -e '\n'
 fi
-
+# Debian/Ubuntu/Mint -->
 if [ -f "$CERTSCONF" ]; then
 	cd "$CERTSDIR"
 	count=0
