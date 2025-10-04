@@ -15,6 +15,12 @@ LOCALCERTSDIR=/usr/local/share/ca-certificates
 CERTBUNDLE=ca-certificates.crt
 ETCCERTSDIR=/etc/ssl/certs
 HOOKSDIR=/etc/ca-certificates/update.d
+# Arch/Manjaro
+DEST=/etc/ca-certificates/extracted
+SRCCONF_HIGHT=/etc/ca-certificates/trust-source     # extended format directory
+SRCCONF_LOW=/usr/share/ca-certificates/trust-source # extended format directory
+TRUSTSUBDIR=anchors                                 # simple trust anchors subdirectory
+BLOCKSUBDIR=blocklist                               # simple blocklist (distrust) subdirectory
 
 # Suspicious CA Org
 REV='(BEIJING CERTIFICATE AUTHORITY'\
@@ -50,7 +56,7 @@ jsonSet() {
 cert2json() {
 	local __tmp
 
-	__tmp="$(cat "$2" | tr -d '\r\n' | sed -En 's|-----BEGIN CERTIFICATE-----([a-zA-Z0-9=\+/_-]+)-----END CERTIFICATE-----|,"\1"|gp')"
+	__tmp="$(grep -Ev '^(#|$)' "$2" | tr -d '\r\n' | sed -En 's|-----BEGIN CERTIFICATE-----([a-zA-Z0-9=\+/_-]+)-----END CERTIFICATE-----|,"\1"|gp')"
 	__tmp="$1='[${__tmp: 1}]'"
 	shift 2
 
@@ -136,4 +142,26 @@ if [ -f "$CERTSCONF" ]; then
 	echo -e '\n'
 
 	$SUDO update-ca-certificates
+fi
+# Arch/Manjaro -->
+if [ -d "$DEST" ]; then
+	$SUDO update-ca-trust
+
+	cd "$DEST/cadir"
+	count=0
+	find * -name '*.pem' -o -name '*.crt' | while read -r _cert; do
+		cert2json ca_in "$_cert"
+		if [ "$(dropSuspiciousCA ca_in)" = "[]" ]; then
+			$SUDO cp -f "$_cert" "$SRCCONF_HIGHT/$BLOCKSUBDIR/"
+			echo "$_cert has been revoked."
+			let count++
+			echo "$count" > /tmp/scart-count
+		fi
+	done
+	count=$(cat /tmp/scart-count 2>/dev/null)
+	rm -f /tmp/scart-count
+	echo "Total revoke ${count:-0} Suspicious CA in ca-certificates."
+	echo -e '\n'
+
+	$SUDO update-ca-trust
 fi
