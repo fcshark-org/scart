@@ -74,6 +74,13 @@ dropSuspiciousCA() {
 }
 
 # func <file>
+isSuspiciousCA() {
+	local _ISSUER="$(openssl x509 -issuer -nameopt=lname -noout -in "$1")"
+
+	grep -qE "$REV" <<< "$_ISSUER"
+}
+
+# func <file>
 getX509HashName() {
 	HASH=$(openssl x509 -hash -noout -in "$1")
 	SUFFIX=0
@@ -109,8 +116,7 @@ if [ -d "$ETCCERTSDIR" ]; then
 	find * -name '*.pem' -o -name '*.crt' | while read -r _cert; do
 		[ "$_cert" = "$CERTBUNDLE" ] && continue
 
-		cert2json ca_in "$_cert"
-		if [ "$(dropSuspiciousCA ca_in)" = "[]" ]; then
+		if isSuspiciousCA "$_cert"; then
 			_hash="$(getX509HashName "$_cert")"
 			$SUDO rm -f "$_cert" "$_hash"
 			echo "$_cert,$_hash has been removed."
@@ -128,8 +134,7 @@ if [ -f "$CERTSCONF" ]; then
 	cd "$CERTSDIR"
 	count=0
 	find * -name '*.pem' -o -name '*.crt' | while read -r _cert; do
-		cert2json ca_in "$_cert"
-		if [ "$(dropSuspiciousCA ca_in)" = "[]" ]; then
+		if isSuspiciousCA "$_cert"; then
 			$SUDO sed -Ei "s|^($_cert)|\!\1|" "$CERTSCONF"
 			echo "$_cert has been revoked."
 			let count++
@@ -150,8 +155,7 @@ if [ -d "$DEST" ]; then
 	cd "$DEST/cadir"
 	count=0
 	find * -name '*.pem' -o -name '*.crt' | while read -r _cert; do
-		cert2json ca_in "$_cert"
-		if [ "$(dropSuspiciousCA ca_in)" = "[]" ]; then
+		if isSuspiciousCA "$_cert"; then
 			$SUDO cp -f "$_cert" "$SRCCONF_HIGHT/$BLOCKSUBDIR/"
 			echo "$_cert has been revoked."
 			let count++
