@@ -41,3 +41,26 @@ sudo update-ca-trust
 opkg update
 opkg install --force-reinstall ca-bundle ca-certificates
 ```
+
+## Search Country CA
+
+```shell
+#!/usr/bin/env bash
+# Depends: bash openssl-util
+
+ETCCERTSDIR=/etc/ssl/certs
+Country=US
+
+# func <Country code> <file>
+isCountryCA() {
+	local _ISSUER="$(openssl x509 -issuer -nameopt=lname -noout -in "$2")"
+
+	grep -q "countryName=$1" <<< "$_ISSUER"
+}
+
+# Main
+cd "$ETCCERTSDIR"
+find * -name '*.pem' -o -name '*.crt' | while read -r _cert; do
+	isCountryCA "$Country" "$_cert" && echo "$_cert"
+done
+```
