@@ -38,9 +38,9 @@ sudo update-ca-trust
 ### RedHat/Fedora
 
 ```shell
-SRCCONF_HIGHT=/etc/pki/ca-trust/source
-BLOCKSUBDIR=blocklist
-sudo rm -f "$SRCCONF_HIGHT/$BLOCKSUBDIR"/*
+RH_SRCCONF_HIGHT=/etc/pki/ca-trust/source
+RH_BLOCKSUBDIR=blocklist
+sudo rm -f "$RH_SRCCONF_HIGHT/$RH_BLOCKSUBDIR"/*
 sudo update-ca-trust
 ```
 
