@@ -104,6 +104,8 @@ getX509HashName() {
 # Debian/Ubuntu/Mint -->
 # Alpine -->
 [ -f "$CERTSCONF" ] && OS=debian && unset ISLEGACY
+# Arch/Manjaro/EndeavourOS/SteamOS -->
+[ -d "$DEST" ] && OS=arch && unset ISLEGACY
 
 
 # Legacy
@@ -178,33 +180,20 @@ case "$OS" in
 			'*.pem' '*.crt'
 		$SUDO update-ca-certificates
 		;;
+	arch)
+		$SUDO update-ca-trust
+		cd "$DEST/cadir"
+		revoke "\$SUDO bash -c \"cat '\$_cert' > '\$SRCCONF_HIGHT/\$BLOCKSUBDIR/\$_cert'\"" \
+			'*.pem' '*.crt'
+		$SUDO update-ca-trust
+		;;
 	*)
 		echo "Not supported OS."
 		exit 1
 		;;
 esac
 
-# Arch/Manjaro/EndeavourOS/SteamOS -->
-if [ -d "$DEST" ]; then
-	$SUDO update-ca-trust
 
-	cd "$DEST/cadir"
-	count=0
-	find * -name '*.pem' -o -name '*.crt' | while read -r _cert; do
-		if isSuspiciousCA "$_cert"; then
-			$SUDO cp -f "$_cert" "$SRCCONF_HIGHT/$BLOCKSUBDIR/"
-			echo "$_cert has been revoked."
-			let count++
-			echo "$count" > /tmp/scart-count
-		fi
-	done
-	count=$(cat /tmp/scart-count 2>/dev/null)
-	rm -f /tmp/scart-count
-	echo "Total revoked ${count:-0} Suspicious CA in ca-certificates."
-	echo -e '\n'
-
-	$SUDO update-ca-trust
-fi
 # RedHat/Fedora -->
 if [ -d "$RH_DEST" ]; then
 	$SUDO update-ca-trust
