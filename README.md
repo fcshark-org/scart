@@ -14,6 +14,8 @@
 
 ```shell
 bash ./scart
+# OR
+curl -L https://raw.githubusercontent.com/fcshark-org/scart/refs/heads/main/scart | bash
 ```
 
 ## How to restore to default
