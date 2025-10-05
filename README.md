@@ -26,7 +26,7 @@ sudo sed -i 's|^\!||' "$CERTSCONF"
 sudo update-ca-certificates
 ```
 
-### Arch/Manjaro/EndeavourOS
+### Arch/Manjaro/EndeavourOS/SteamOS
 
 ```shell
 SRCCONF_HIGHT=/etc/ca-certificates/trust-source
