@@ -63,6 +63,7 @@ apk fix ca-bundle ca-certificates
 # Depends: bash openssl-util
 
 ETCCERTSDIR=/etc/ssl/certs
+SUFFIX=0
 Country=US
 
 # func <Country code> <file>
@@ -74,7 +75,7 @@ isCountryCA() {
 
 # Main
 cd "$ETCCERTSDIR"
-find * -name '*.pem' -o -name '*.crt' | while read -r _cert; do
-	isCountryCA "$Country" "$_cert" && echo "$_cert"
+find * -name '*.'"$SUFFIX" | while read -r _cert; do
+	isCountryCA "$Country" "$_cert" && readlink "$_cert"
 done
 ```
