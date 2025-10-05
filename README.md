@@ -18,7 +18,7 @@ bash ./scart
 
 ## How to restore to default
 
-### Debian/Ubuntu/Mint/Alpine
+### Debian/Ubuntu/Mint/Alpine/Gentoo
 
 ```shell
 CERTSCONF=/etc/ca-certificates.conf

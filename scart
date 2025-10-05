@@ -103,6 +103,7 @@ getX509HashName() {
 [ -d "$ETCCERTSDIR" ] && ISLEGACY=1
 # Debian/Ubuntu/Mint -->
 # Alpine -->
+# Gentoo -->
 [ -f "$CERTSCONF" ] && OS=debian && unset ISLEGACY
 # Arch/Manjaro/EndeavourOS/SteamOS -->
 [ -d "$DEST" ] && OS=arch && unset ISLEGACY
