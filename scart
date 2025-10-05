@@ -8,6 +8,7 @@
 # Depends: ca-bundle OR ca-certificates bash jq-full OR jq openssl-util
 
 # Debian/Ubuntu/Mint
+# Alpine
 # OpenWRT
 CERTSCONF=/etc/ca-certificates.conf
 CERTSDIR=/usr/share/ca-certificates
@@ -15,7 +16,7 @@ LOCALCERTSDIR=/usr/local/share/ca-certificates
 CERTBUNDLE=ca-certificates.crt
 ETCCERTSDIR=/etc/ssl/certs
 HOOKSDIR=/etc/ca-certificates/update.d
-# Arch/Manjaro
+# Arch/Manjaro/EndeavourOS
 DEST=/etc/ca-certificates/extracted
 SRCCONF_HIGHT=/etc/ca-certificates/trust-source     # extended format directory
 SRCCONF_LOW=/usr/share/ca-certificates/trust-source # extended format directory
@@ -130,6 +131,7 @@ if [ -d "$ETCCERTSDIR" ]; then
 	echo -e '\n'
 fi
 # Debian/Ubuntu/Mint -->
+# Alpine -->
 if [ -f "$CERTSCONF" ]; then
 	cd "$CERTSDIR"
 	count=0
@@ -148,7 +150,7 @@ if [ -f "$CERTSCONF" ]; then
 
 	$SUDO update-ca-certificates
 fi
-# Arch/Manjaro -->
+# Arch/Manjaro/EndeavourOS -->
 if [ -d "$DEST" ]; then
 	$SUDO update-ca-trust
 

@@ -18,7 +18,7 @@ bash ./scart
 
 ## How to restore to default
 
-### Debian/Ubunto/Mint
+### Debian/Ubunto/Mint/Alpine
 
 ```shell
 CERTSCONF=/etc/ca-certificates.conf
@@ -26,7 +26,7 @@ sudo sed -i 's|^\!||' "$CERTSCONF"
 sudo update-ca-certificates
 ```
 
-### Arch/Manjaro
+### Arch/Manjaro/EndeavourOS
 
 ```shell
 SRCCONF_HIGHT=/etc/ca-certificates/trust-source
@@ -40,6 +40,9 @@ sudo update-ca-trust
 ```shell
 opkg update
 opkg install --force-reinstall ca-bundle ca-certificates
+# OR
+apk update
+apk fix ca-bundle ca-certificates
 ```
 
 ## Search Country CA
