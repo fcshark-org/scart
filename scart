@@ -9,6 +9,7 @@
 
 # Debian/Ubuntu/Mint
 # Alpine
+# Gentoo
 # OpenWRT
 CERTSCONF=/etc/ca-certificates.conf
 CERTSDIR=/usr/share/ca-certificates
