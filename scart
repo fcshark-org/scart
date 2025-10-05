@@ -16,6 +16,7 @@ LOCALCERTSDIR=/usr/local/share/ca-certificates
 CERTBUNDLE=ca-certificates.crt
 ETCCERTSDIR=/etc/ssl/certs
 HOOKSDIR=/etc/ca-certificates/update.d
+SUFFIX=0
 # Arch/Manjaro/EndeavourOS/SteamOS
 DEST=/etc/ca-certificates/extracted
 SRCCONF_HIGHT=/etc/ca-certificates/trust-source     # extended format directory
@@ -89,8 +90,8 @@ isSuspiciousCA() {
 
 # func <file>
 getX509HashName() {
-	HASH=$(openssl x509 -hash -noout -in "$1")
-	SUFFIX=0
+	local HASH=$(openssl x509 -hash -noout -in "$1")
+	local SUFFIX=$SUFFIX
 
 	echo "$HASH.$SUFFIX"
 }
