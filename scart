@@ -22,6 +22,12 @@ SRCCONF_HIGHT=/etc/ca-certificates/trust-source     # extended format directory
 SRCCONF_LOW=/usr/share/ca-certificates/trust-source # extended format directory
 TRUSTSUBDIR=anchors                                 # simple trust anchors subdirectory
 BLOCKSUBDIR=blocklist                               # simple blocklist (distrust) subdirectory
+# RedHat/Fedora
+RH_DEST=/etc/pki/ca-trust/extracted
+RH_SRCCONF_HIGHT=/etc/pki/ca-trust/source
+RH_SRCCONF_LOW=/usr/share/pki/ca-trust-source
+RH_TRUSTSUBDIR=anchors
+RH_BLOCKSUBDIR=blocklist
 
 # Suspicious CA Org
 REV='(BEIJING CERTIFICATE AUTHORITY'\
@@ -159,6 +165,27 @@ if [ -d "$DEST" ]; then
 	find * -name '*.pem' -o -name '*.crt' | while read -r _cert; do
 		if isSuspiciousCA "$_cert"; then
 			$SUDO cp -f "$_cert" "$SRCCONF_HIGHT/$BLOCKSUBDIR/"
+			echo "$_cert has been revoked."
+			let count++
+			echo "$count" > /tmp/scart-count
+		fi
+	done
+	count=$(cat /tmp/scart-count 2>/dev/null)
+	rm -f /tmp/scart-count
+	echo "Total revoke ${count:-0} Suspicious CA in ca-certificates."
+	echo -e '\n'
+
+	$SUDO update-ca-trust
+fi
+# RedHat/Fedora -->
+if [ -d "$RH_DEST" ]; then
+	$SUDO update-ca-trust
+
+	cd "$ETCCERTSDIR"
+	count=0
+	find * -name '*.pem' -o -name '*.crt' | while read -r _cert; do
+		if isSuspiciousCA "$_cert"; then
+			$SUDO cp -f "$_cert" "$RH_SRCCONF_HIGHT/$RH_BLOCKSUBDIR/"
 			echo "$_cert has been revoked."
 			let count++
 			echo "$count" > /tmp/scart-count

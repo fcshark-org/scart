@@ -35,6 +35,15 @@ sudo rm -f "$SRCCONF_HIGHT/$BLOCKSUBDIR"/*
 sudo update-ca-trust
 ```
 
+### RedHat/Fedora
+
+```shell
+SRCCONF_HIGHT=/etc/pki/ca-trust/source
+BLOCKSUBDIR=blocklist
+sudo rm -f "$SRCCONF_HIGHT/$BLOCKSUBDIR"/*
+sudo update-ca-trust
+```
+
 ### OpenWRT
 
 ```shell
