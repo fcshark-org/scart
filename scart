@@ -101,6 +101,9 @@ getX509HashName() {
 # Legacy -->
 # OpenWRT -->
 [ -d "$ETCCERTSDIR" ] && ISLEGACY=1
+# Debian/Ubuntu/Mint -->
+# Alpine -->
+[ -f "$CERTSCONF" ] && OS=debian && unset ISLEGACY
 
 
 # Legacy
@@ -143,26 +146,44 @@ if [ -n "$ISLEGACY" ]; then
 	echo "Total removed ${count:-0} Suspicious CA in legacy ca-certificates."
 	echo -e '\n'
 fi
-# Debian/Ubuntu/Mint -->
-# Alpine -->
-if [ -f "$CERTSCONF" ]; then
-	cd "$CERTSDIR"
-	count=0
-	find * -name '*.pem' -o -name '*.crt' | while read -r _cert; do
-		if isSuspiciousCA "$_cert"; then
-			$SUDO sed -Ei "s|^($_cert)|\!\1|" "$CERTSCONF"
-			echo "$_cert has been revoked."
-			let count++
-			echo "$count" > /tmp/scart-count
-		fi
+
+# func func <callback> <names>...
+revoke() {
+	local _callback="$1"; shift 1
+	local count=0
+
+	for _name in "$@"; do
+		find * -name "$_name" | while read -r _cert; do
+			if isSuspiciousCA "$_cert"; then
+				eval "$_callback"
+				echo "$_cert has been revoked."
+				let count++
+				echo "$count" > /tmp/scart-count
+			fi
+		done
+		count=$(cat /tmp/scart-count 2>/dev/null)
 	done
-	count=$(cat /tmp/scart-count 2>/dev/null)
+
 	rm -f /tmp/scart-count
 	echo "Total revoked ${count:-0} Suspicious CA in ca-certificates."
 	echo -e '\n'
+}
 
-	$SUDO update-ca-certificates >/dev/null
-fi
+
+# Start
+case "$OS" in
+	debian)
+		cd "$CERTSDIR"
+		revoke '$SUDO sed -Ei "s|^($_cert)|\!\1|" "$CERTSCONF"' \
+			'*.pem' '*.crt'
+		$SUDO update-ca-certificates
+		;;
+	*)
+		echo "Not supported OS."
+		exit 1
+		;;
+esac
+
 # Arch/Manjaro/EndeavourOS/SteamOS -->
 if [ -d "$DEST" ]; then
 	$SUDO update-ca-trust
