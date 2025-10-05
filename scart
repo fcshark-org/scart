@@ -98,8 +98,13 @@ getX509HashName() {
 
 
 ## Main
-# Legacy/OpenWRT -->
-if [ -d "$ETCCERTSDIR" ]; then
+# Legacy -->
+# OpenWRT -->
+[ -d "$ETCCERTSDIR" ] && ISLEGACY=1
+
+
+# Legacy
+if [ -n "$ISLEGACY" ]; then
 	cd "$ETCCERTSDIR"
 	# ca-bundle -->
 	if [ -f "$CERTBUNDLE" ]; then
@@ -121,18 +126,19 @@ if [ -d "$ETCCERTSDIR" ]; then
 	echo -e '\n'
 	# ca-certificates -->
 	count=0
-	find * -name '*.pem' -o -name '*.crt' | while read -r _cert; do
-		[ "$_cert" = "$CERTBUNDLE" ] && continue
+	for _name in '*.'"$SUFFIX" '*.pem' '*.crt'; do
+		find * -name "$_name" | while read -r _cert; do
+			[ "$_cert" = "$CERTBUNDLE" ] && continue
 
-		if isSuspiciousCA "$_cert"; then
-			_hash="$(getX509HashName "$_cert")"
-			$SUDO rm -f "$_cert" "$_hash"
-			echo "$_cert,$_hash has been removed."
-			let count++
-			echo "$count" > /tmp/scart-count
-		fi
+			if isSuspiciousCA "$_cert"; then
+				$SUDO rm -f "$_cert"
+				echo "$_cert has been removed."
+				let count++
+				echo "$count" > /tmp/scart-count
+			fi
+		done
+		count=$(cat /tmp/scart-count 2>/dev/null)
 	done
-	count=$(cat /tmp/scart-count 2>/dev/null)
 	rm -f /tmp/scart-count
 	echo "Total removed ${count:-0} Suspicious CA in legacy ca-certificates."
 	echo -e '\n'
