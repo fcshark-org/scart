@@ -178,7 +178,8 @@ revoke() {
 case "$OS" in
 	debian)
 		cd "$CERTSDIR"
-		revoke '$SUDO sed -Ei "s|^($_cert)|\!\1|" "$CERTSCONF"' \
+		revoke '[ -n "$(sed -En "s|^\!$_cert|Y|p" "$CERTSCONF")" ] && continue;
+			$SUDO sed -Ei "s|^($_cert)|\!\1|" "$CERTSCONF"' \
 			'*.pem' '*.crt'
 		$SUDO update-ca-certificates
 		;;
@@ -195,9 +196,5 @@ case "$OS" in
 		revoke "\$SUDO bash -c \"cat '\$_cert' > '\$RH_SRCCONF_HIGHT/\$RH_BLOCKSUBDIR/\$_cert'\"" \
 			'*.pem' '*.crt'
 		$SUDO update-ca-trust
-		;;
-	*)
-		echo "Not supported OS."
-		exit 1
 		;;
 esac
