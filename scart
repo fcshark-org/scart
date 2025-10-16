@@ -5,7 +5,10 @@
 # Use to revoke built-in Suspicious CA,
 # avoiding possible MiTM by CN GOV
 #
-# Depends: ca-bundle OR ca-certificates bash jq-full OR jq openssl-util
+# Depends: ca-bundle OR ca-certificates bash getopt jq-full OR jq openssl-util
+
+# Init
+VERSION=0.1.4
 
 # Debian/Ubuntu/Mint
 # Alpine
@@ -32,18 +35,42 @@ RH_TRUSTSUBDIR=anchors
 RH_BLOCKSUBDIR=blocklist
 
 # Suspicious CA Org
-REV='(BEIJING CERTIFICATE AUTHORITY'\
-'|China Financial Certification Authority'\
-'|GUANG DONG CERTIFICATE AUTHORITY'\
-'|Certum Certification Authority'\
-'|iTrusChina'\
-'|TrustAsia Technologies'\
-'|UniTrust)'
+# High-risk CA
+REV='BEIJING CERTIFICATE AUTHORITY
+GUANG DONG CERTIFICATE AUTHORITY
+iTrusChina
+TrustAsia Technologies
+UniTrust'
+# Extended CA
+REV_EX='China Financial Certification Authority
+Certum Certification Authority'
 
 SUDO=$(command -v sudo)
 
+# Get options
+GETOPT=$(getopt -n $(basename $0) -o eaV -l ext,all,version,help -- "$@")
+[ $? -ne 0 ] && >&2 echo -e "\tUse the --help option get help" && exit 1
+eval set -- "$GETOPT"
+OPTIONS=$(sed "s|'[^']*'||g; s| -- .+$||; s| --$||" <<< "$GETOPT")
+
 
 ## Sub-func
+_help() {
+printf "\n\
+Usage: scart [OPTION]... \n\
+\n\
+Options:\n\
+  -e, --ext            -- Revoke Extended CA\n\
+  -a, --all            -- Revoke All CA\n\
+  -V, --version        -- Returns version\n\
+  --help               -- Returns help info\n\
+\n"
+}
+
+_version() {
+	echo "$(basename $0) version: v$VERSION"
+}
+
 # func <objvar> <filters> [args]
 jsonSelect() {
 	local obj="$1" filters="$2"
@@ -99,6 +126,39 @@ getX509HashName() {
 
 
 ## Main
+# Get options
+while [ -n "$1" ]; do
+	case "$1" in
+		--help)
+			_help
+			exit
+		;;
+		-V|--version)
+			_version
+			exit
+		;;
+		-e|--ext)
+			REV="$REV\n$REV_EX"
+		;;
+		-a|--all)
+			REV="$REV\n$REV_EX"
+		;;
+		--)
+			shift
+			break
+		;;
+		*)
+			>&2 echo -e "$(basename $0): '$1' is not an option\n\tUse the --help option get help"
+			exit 1
+		;;
+	esac
+	shift
+done
+REV="$(printf "($REV)" | tr '\n' '|')"
+# Get parameters
+# ...
+
+
 # Legacy -->
 # OpenWRT -->
 [ -d "$ETCCERTSDIR" ] && ISLEGACY=1
